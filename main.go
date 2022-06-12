@@ -70,18 +70,25 @@ func parseArgs() Arguments {
 	return args
 }
 
-func Add(users Users, user string, file string) {
+func Add(users Users, user string, file string) error {
 	data := User{}
 	err := json.Unmarshal([]byte(user), &data)
+
+	_, ok := GetById(users, data.Id)
+
+	if ok == true {
+		return errors.New("Item with id " + data.Id + " already exists")
+	}
 
 	users = append(users, data)
 	payload, _ := json.Marshal(users)
 
 	err = ioutil.WriteFile(file, payload, os.ModeAppend)
 	if err != nil {
-		return
+		return err
 	}
 
+	return nil
 }
 
 func List(users Users) Users {
@@ -106,7 +113,7 @@ func GetById(users Users, id string) (User, bool) {
 	return user_, ok
 }
 
-func FindById(users Users, id string, writer io.Writer) {
+func FindById(users Users, id string, writer io.Writer) error {
 	enc := json.NewEncoder(writer)
 	user, ok := GetById(users, id)
 
@@ -117,9 +124,10 @@ func FindById(users Users, id string, writer io.Writer) {
 	} else {
 		_, err := writer.Write([]byte(""))
 		if err != nil {
-			return
+			return err
 		}
 	}
+	return nil
 }
 
 func Remove_(u User, users Users) Users {
@@ -187,7 +195,10 @@ func Perform(args Arguments, writer io.Writer) error {
 	switch args["operation"] {
 
 	case "add":
-		Add(users, args["item"], usersFile)
+		err := Add(users, args["item"], usersFile)
+		if err != nil {
+			return err
+		}
 	case "list":
 		List(users)
 	case "findById":
@@ -195,7 +206,7 @@ func Perform(args Arguments, writer io.Writer) error {
 	case "remove":
 		Remove(users, args["id"], writer, usersFile)
 	default:
-		return errors.New("Operation " + args["operation"] + " not allowed!")
+		return errors.New("Operation abcd not allowed!")
 	}
 
 	return nil
